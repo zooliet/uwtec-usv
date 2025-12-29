@@ -1,0 +1,183 @@
+#! /usr/bin/env python
+
+# import sys
+import os
+import yaml
+import rclpy
+from rclpy.node import Node
+from ament_index_python.packages import get_package_share_directory
+
+from sensor_msgs.msg import NavSatFix, Imu
+
+# from nav_msgs.msg import Odometry
+# from uwtec_nav.utils.gps_utils import (
+#     euler_from_quaternion,
+# )
+from geometry_msgs.msg import TwistStamped
+import argparse
+import math
+from uwtec_nav.utils.heading_utils import calc_goal_heading, rotate_to_go
+from uwtec_nav.utils.gps_utils import distance_and_bearing
+
+from enum import Enum
+
+
+# class Status(Enum):
+#     STOP = 1
+#     TURN = 2
+#     RUN = 3
+#     FINISHED = 4
+
+
+class NavDemo(Node):
+    def __init__(self, params):
+        super().__init__("nav_demo_node")
+        self.interval = float(params.get("interval", 1.0))
+        self.angular = float(params.get("angular", 0.5))
+        self.linear = float(params.get("linear", 0.5))
+        self.angular_accuracy = int(params.get("angular_accuracy", 5))
+        self.distance_accuracy = int(params.get("distance_accuracy", 5))
+
+        self.goal_heading = 0.0
+        self.start_count = 3
+
+        self.latitude = 0.0
+        self.longitude = 0.0
+        self.heading = float(params.get("heading", 0))
+
+        self.coords = []
+        yaml_file_path = os.path.join(
+            get_package_share_directory("uwtec_nav"), "config", params["yaml"]
+        )
+        with open(yaml_file_path, "r") as wps_file:
+            self.coords = yaml.safe_load(wps_file)
+
+        # self.status = Status.STOP
+        self.wps_index = 0
+
+        self.gps_subscriber = self.create_subscription(
+            NavSatFix, "/gps/custom", self.gps_custom_callback, 1
+        )
+
+        self.diff_drive_cmd_vel_publisher = self.create_publisher(
+            TwistStamped, "/diff_drive_base_controller/cmd_vel", 10
+        )
+        self.timer = self.create_timer(self.interval, self.timer_callback)
+
+    def timer_callback(self):
+        if self.start_count > 0:
+            # wait for 3 sencods
+            self.start_count -= 1
+        else:
+            point1 = (self.latitude, self.longitude)
+            coords = self.coords[self.wps_index]
+            point2 = (coords["Lat"], coords["Lon"])
+            self.get_logger().info(f"\nSource: {point1}\nTarget: {point2}\n")
+            (distance, bearing) = distance_and_bearing(point1, point2)
+            degree = rotate_to_go(self.heading + 360, bearing + 360)
+            # self.get_logger().info(
+            #     f"\nSource: {point1}\nTarget: {point2} \
+            #     \nDistance: {distance:.2f}\nBearing: {bearing:.2f} \nHeading: {self.heading:.2f} \
+            #     \n=> {degree:.2f} deg\n"
+            # )
+
+            if math.fabs(distance) > self.distance_accuracy:
+                if math.fabs(degree) > self.angular_accuracy * 2.0:
+                    self.turn_around(degree)
+                else:
+                    self.go_drive(distance, degree)
+            else:
+                self.wps_index += 1
+                if self.wps_index == len(self.coords):
+                    self.get_logger().info("Navigation Finished.")
+                    self.timer.cancel()
+                    exit(0)
+
+    def gps_custom_callback(self, msg):
+        self.latitude = msg.latitude
+        self.longitude = msg.longitude
+        self.heading = msg.altitude
+
+    def go_drive(self, distance, degree):
+        sign = 1 if degree > 0 else -1
+        degree = math.fabs(degree)
+        if degree > 20:
+            angular_speed = self.angular * sign
+        elif degree > 10:
+            angular_speed = 0.3 * sign
+        elif degree > self.angular_accuracy:
+            angular_speed = 0.2 * sign
+        else:
+            angular_speed = 0.0
+
+        distance = math.fabs(distance)
+        if distance > 20:
+            linear_speed = self.linear
+        elif degree > 10:
+            linear_speed = 0.3
+        elif degree > self.angular_accuracy:
+            linear_speed = 0.2
+        else:
+            linear_speed = 0.0
+
+        # self.get_logger().info(f"\nAngular speed: {angular_speed}\nLinear speed: {linear_speed}")
+        this_time = self.get_clock().now().to_msg()
+        twist_msg = TwistStamped()
+        twist_msg.header.stamp = this_time
+        twist_msg.header.frame_id = "base_footprint"
+        twist_msg.twist.linear.x = linear_speed
+        twist_msg.twist.angular.z = angular_speed
+        self.diff_drive_cmd_vel_publisher.publish(twist_msg)
+
+    def turn_around(self, degree):
+        sign = 1 if degree > 0 else -1
+        degree = math.fabs(degree)
+        if degree > 20:
+            angular_speed = self.angular * sign
+        elif degree > 10:
+            angular_speed = 0.3 * sign
+        elif degree > self.angular_accuracy:
+            angular_speed = 0.2 * sign
+        else:
+            angular_speed = 0.0
+
+        # self.get_logger().info(f"\nAngular speed: {angular_speed}")
+        this_time = self.get_clock().now().to_msg()
+        twist_msg = TwistStamped()
+        twist_msg.header.stamp = this_time
+        twist_msg.header.frame_id = "base_footprint"
+        twist_msg.twist.angular.z = angular_speed
+        self.diff_drive_cmd_vel_publisher.publish(twist_msg)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-i", "--interval", type=float, default=1.0, help="timer interval")
+    ap.add_argument("-y", "--yaml", default="uwtec_wps.yaml", help="waypoints file")
+    ap.add_argument(
+        "--heading", type=float, default=0.0, help="initial heading for testing"
+    )
+    ap.add_argument(
+        "--distance-accuracy", type=int, default=5, help="target distance accuracy"
+    )
+    ap.add_argument(
+        "--angular-accuracy", type=int, default=5, help="target angular accuracy"
+    )
+    ap.add_argument(
+        "-a", "--angular", type=float, default=0.5, help="angular velocity (-1 ~ 1)"
+    )
+    ap.add_argument(
+        "-l", "--linear", type=float, default=0.5, help="linear velocity (-1 ~ 1)"
+    )
+    args = vars(ap.parse_args())
+    print(args)
+
+    rclpy.init()
+    node = NavDemo(args)
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
