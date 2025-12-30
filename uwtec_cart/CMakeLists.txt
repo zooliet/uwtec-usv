@@ -12,7 +12,7 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 install(
-  DIRECTORY launch rviz urdf worlds models config
+  DIRECTORY launch rviz urdf worlds config # models
   DESTINATION share/${PROJECT_NAME}
 )
 

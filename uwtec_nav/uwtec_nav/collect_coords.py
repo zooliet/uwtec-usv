@@ -35,9 +35,12 @@ class NavDemo(Node):
             NavSatFix, "/gps/custom", self.gps_custom_callback, 1
         )
 
-        self.diff_drive_cmd_vel_publisher = self.create_publisher(
-            TwistStamped, "/diff_drive_base_controller/cmd_vel", 10
-        )
+        # self.diff_drive_cmd_vel_publisher = self.create_publisher(
+        #     # TwistStamped, "/diff_drive_base_controller/cmd_vel", 10
+        #     TwistStamped,
+        #     "/cmd_vel_nav",
+        #     10,
+        # )
         self.timer = self.create_timer(self.interval, self.timer_callback)
 
     def timer_callback(self):

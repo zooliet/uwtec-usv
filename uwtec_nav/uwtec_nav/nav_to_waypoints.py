@@ -60,7 +60,10 @@ class NavDemo(Node):
         )
 
         self.diff_drive_cmd_vel_publisher = self.create_publisher(
-            TwistStamped, "/diff_drive_base_controller/cmd_vel", 10
+            # TwistStamped, "/diff_drive_base_controller/cmd_vel", 10
+            TwistStamped,
+            "/cmd_vel_nav",
+            10,
         )
         self.timer = self.create_timer(self.interval, self.timer_callback)
 
