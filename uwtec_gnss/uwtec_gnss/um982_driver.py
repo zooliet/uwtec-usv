@@ -10,13 +10,12 @@ from uwtec_gnss.utils.nmea_util import (
     PVTSLN_solver,
     GNHPR_solver,
     BESTNAV_solver,
-    # KSXT_solver,
 )
 import numpy as np
 
 
 class UM982Driver(threading.Thread):
-    def __init__(self, port, baudrate):
+    def __init__(self, port, baudrate, debug):
         super().__init__()
         self.device = serial.Serial(port, int(baudrate))
         self.running = False
@@ -24,24 +23,29 @@ class UM982Driver(threading.Thread):
         self.orientations = np.empty(shape=(0, 3))
         self.velocities = np.empty(shape=(0, 6))
         self.nmea = None
+        self.debug = debug
+        self.frame_no = 0
 
     def read_frame(self):
         try:
             frame = self.device.readline().decode("utf-8").strip()
         except Exception as e:
             print(e)
-        finally:
-            pass
-        # For simplicity, we will just print the frame
-        # print(f"Received frame: {frame.strip()}")
+            return
+
+        # if self.debug:
+        #     print(f"Received frame: {frame}")
+
         if frame.startswith("#PVTSLNA") and nmea_expend_crc(frame):
             try:
                 fix = PVTSLN_solver(frame)
                 self.fixes = np.vstack((self.fixes, np.array(fix)))
+                if self.debug:
+                    if self.fixes.shape[0] % 100 == 0:
+                        print(f"PVTSLNA - {self.fixes.shape}")
+
             except Exception as _:
                 print(f"PVTSLNA#{self.fixes.shape[0]:04d}, Error")
-            # if self.fixes.shape[0] % 100 == 0:
-            #     print(f"PVTSLNA - {self.fixes.shape}")
 
         elif frame.startswith("$GNHPR") and nmea_crc(frame):
             try:
@@ -49,29 +53,29 @@ class UM982Driver(threading.Thread):
                 self.orientations = np.vstack(
                     (self.orientations, np.array(orientation))
                 )
+                if self.debug:
+                    if self.orientations.shape[0] % 100 == 0:
+                        print(f"GNHPR - {self.orientations.shape}")
             except Exception as _:
                 print(f"GNHPR#{self.orientations.shape[0]:04d}, Error")
-            # if self.orientations.shape[0] % 100 == 0:
-            #     print(f"GNHPR - {self.orientations.shape}")
 
         elif frame.startswith("#BESTNAVA") and nmea_expend_crc(frame):
             try:
                 velocity = BESTNAV_solver(frame)
                 self.velocities = np.vstack((self.velocities, np.array(velocity)))
+                if self.debug:
+                    if self.velocities.shape[0] % 100 == 0:
+                        print(f"BESTNAVA - {self.velocities.shape}")
             except Exception as _:
                 print(f"BESTNAVA#{self.velocities.shape[0]:04d}, Error")
-            # if self.velocities.shape[0] % 100 == 0:
-            #     print(f"BESTNAVA - {self.velocities.shape}")
-
-    # elif frame.startswith("$KSXT") and nmea_crc(frame):
-    #     self.ksxt = KSXT_solver(frame)
 
     def run(self):
         self.running = True
         while self.running:
-            # print("Simulate reading data from GNSS device")
-            # time.sleep(0.1)
             self.read_frame()
+            # print("Simulate reading data from GNSS device")
+            # time.sleep(0.01)
+            self.frame_no += 1
 
     def stop(self):
         self.running = False
@@ -85,10 +89,13 @@ def main():
     ap.add_argument(
         "-b", "--baudrate", type=int, default=115200, help="current baudrate"
     )
+    ap.add_argument(
+        "--debug", action="store_true", help="Enable debug mode (default: False)"
+    )
 
     args = vars(ap.parse_args())
     print(args)
-    gnss_driver = UM982Driver(args["port"], args["baudrate"])
+    gnss_driver = UM982Driver(**args)
     gnss_driver.start()
 
 

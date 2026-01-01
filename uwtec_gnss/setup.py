@@ -32,6 +32,8 @@ setup(
             "um982_driver = uwtec_gnss.um982_driver:main",
             "um982_publisher = uwtec_gnss.um982_publisher:main",
             "um982_rkt_chekcer = uwtec_gnss.um982_rkt_chekcer:main",
+            "mpu6050_driver = uwtec_gnss.mpu6050_driver:main",
+            "mpu6050_publisher = uwtec_gnss.mpu6050_publisher:main",
         ],
     },
 )

@@ -5,13 +5,15 @@ def calc_goal_heading(current_heading, by):
 
 
 def rotate_to_go(current_heading, goal_heading):
-    deg = goal_heading - current_heading
+    deg = (goal_heading - current_heading) % 360
     if deg > 180:
-        deg = deg - 360
-    elif deg < -180:
-        deg = deg + 360
-    else:
-        pass
+        deg = deg % -360
+    # if deg > 180:
+    #     deg = deg - 360
+    # elif deg < -180:
+    #     deg = deg + 360
+    # else:
+    #     pass
     return deg
 
 
