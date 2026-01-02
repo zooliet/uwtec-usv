@@ -73,7 +73,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-p", "--port", default="/dev/ttyGYRO", help="Gyro device path")
+    ap.add_argument("-p", "--port", default="/dev/ttyAMA0", help="Gyro device path")
     ap.add_argument(
         "-b", "--baudrate", type=int, default=115200, help="current baudrate"
     )

@@ -50,7 +50,7 @@ class MPU6050Driver(threading.Thread):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-p", "--port", default="/dev/ttyUSB0", help="Gyro device path")
+    ap.add_argument("-p", "--port", default="/dev/ttyAMA0", help="Gyro device path")
     ap.add_argument(
         "-b", "--baudrate", type=int, default=115200, help="current baudrate"
     )

@@ -7,7 +7,6 @@ from uwtec_nav.utils.gps_utils import (
     euler_from_quaternion,
 )
 
-# from tf_transformations import euler_from_quaternion
 from geometry_msgs.msg import TwistStamped
 import argparse
 import math
@@ -23,14 +22,14 @@ class NavDemo(Node):
         self.angular = angular
         self.debug = debug
 
-        self.goal_heading = 0.0
-        self.start_countdown = 5
-
         self.latitude = 0.0
         self.longitude = 0.0
         self.heading = heading
         self.yaw = 0
         self.offset = 0
+
+        self.goal_heading = 0.0
+        self.start_countdown = 5
 
         self.gps_subscriber = self.create_subscription(
             NavSatFix, "/gps/custom", self.gps_custom_callback, 1
@@ -84,14 +83,15 @@ class NavDemo(Node):
     def turn_around(self, degree):
         sign = 1 if degree > 0 else -1
         degree = math.fabs(degree)
-        if degree > 20:
-            angular_speed = self.angular * sign
-        elif degree > 10:
-            angular_speed = 0.3 * sign
-        elif degree > self.accuracy:
-            angular_speed = 0.2 * sign
-        else:
-            angular_speed = 0.0
+        angular_speed = 0.4 * sign
+        # if degree > 20:
+        #     angular_speed = self.angular * sign
+        # elif degree > 10:
+        #     angular_speed = 0.3 * sign
+        # elif degree > self.accuracy:
+        #     angular_speed = 0.2 * sign
+        # else:
+        #     angular_speed = 0.0
 
         # self.get_logger().info(f"\nAngular speed: {angular_speed}")
         this_time = self.get_clock().now().to_msg()

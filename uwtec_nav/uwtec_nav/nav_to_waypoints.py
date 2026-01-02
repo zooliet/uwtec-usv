@@ -2,17 +2,17 @@
 
 # import sys
 import os
+
 import yaml
 import rclpy
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 
 from sensor_msgs.msg import NavSatFix, Imu
+from uwtec_nav.utils.gps_utils import (
+    euler_from_quaternion,
+)
 
-# from nav_msgs.msg import Odometry
-# from uwtec_nav.utils.gps_utils import (
-#     euler_from_quaternion,
-# )
 from geometry_msgs.msg import TwistStamped
 import argparse
 import math
@@ -30,24 +30,34 @@ from enum import Enum
 
 
 class NavDemo(Node):
-    def __init__(self, params):
+    def __init__(
+        self,
+        interval,
+        yaml_file,
+        heading,
+        angular,
+        linear,
+        angular_accuracy,
+        distance_accuracy,
+    ):
         super().__init__("nav_demo_node")
-        self.interval = float(params.get("interval", 1.0))
-        self.angular = float(params.get("angular", 0.5))
-        self.linear = float(params.get("linear", 0.5))
-        self.angular_accuracy = int(params.get("angular_accuracy", 5))
-        self.distance_accuracy = int(params.get("distance_accuracy", 5))
-
-        self.goal_heading = 0.0
-        self.start_count = 3
+        self.interval = interval
+        self.yaml_file = yaml_file
+        self.angular = angular
+        self.linear = linear
+        self.angular_accuracy = angular_accuracy
+        self.distance_accuracy = distance_accuracy
 
         self.latitude = 0.0
         self.longitude = 0.0
-        self.heading = float(params.get("heading", 0))
+        self.heading = heading
+        self.yaw = 0
+        self.offset = 0
+        self.start_countdown = 5
 
         self.coords = []
         yaml_file_path = os.path.join(
-            get_package_share_directory("uwtec_nav"), "config", params["yaml"]
+            get_package_share_directory("uwtec_nav"), "config", self.yaml_file
         )
         with open(yaml_file_path, "r") as wps_file:
             self.coords = yaml.safe_load(wps_file)
@@ -57,6 +67,9 @@ class NavDemo(Node):
 
         self.gps_subscriber = self.create_subscription(
             NavSatFix, "/gps/custom", self.gps_custom_callback, 1
+        )
+        self.gyro_subscriber = self.create_subscription(
+            Imu, "/gyro/imu", self.gyro_imu_callback, 1
         )
 
         self.diff_drive_cmd_vel_publisher = self.create_publisher(
@@ -68,19 +81,22 @@ class NavDemo(Node):
         self.timer = self.create_timer(self.interval, self.timer_callback)
 
     def timer_callback(self):
-        if self.start_count > 0:
-            # wait for 3 sencods
-            self.start_count -= 1
+        current_heading = (self.yaw - self.offset) % 360
+        if self.start_countdown > 0:
+            self.get_logger().info(f"{self.start_countdown}...")
+            self.start_countdown -= 1
+            if self.start_countdown == 0:
+                self.offset = (self.yaw - self.heading) % 360
         else:
             point1 = (self.latitude, self.longitude)
             coords = self.coords[self.wps_index]
             point2 = (coords["Lat"], coords["Lon"])
             self.get_logger().info(f"\nSource: {point1}\nTarget: {point2}\n")
             (distance, bearing) = distance_and_bearing(point1, point2)
-            degree = rotate_to_go(self.heading + 360, bearing + 360)
+            degree = rotate_to_go(current_heading, bearing)
             # self.get_logger().info(
             #     f"\nSource: {point1}\nTarget: {point2} \
-            #     \nDistance: {distance:.2f}\nBearing: {bearing:.2f} \nHeading: {self.heading:.2f} \
+            #     \nDistance: {distance:.2f}\nBearing: {bearing:.2f} \nHeading: {current_heading:.2f} \
             #     \n=> {degree:.2f} deg\n"
             # )
 
@@ -101,17 +117,26 @@ class NavDemo(Node):
         self.longitude = msg.longitude
         self.heading = msg.altitude
 
+    def gyro_imu_callback(self, msg):
+        quaternion = msg.orientation
+        # print(quaternion)
+        _, _, yaw = euler_from_quaternion(quaternion)
+        self.yaw = math.degrees(yaw) % 360  # rad to deg
+        if self.debug:
+            print(f"Gyro: {self.yaw:.2f}")
+
     def go_drive(self, distance, degree):
         sign = 1 if degree > 0 else -1
         degree = math.fabs(degree)
-        if degree > 20:
-            angular_speed = self.angular * sign
-        elif degree > 10:
-            angular_speed = 0.3 * sign
-        elif degree > self.angular_accuracy:
-            angular_speed = 0.2 * sign
-        else:
-            angular_speed = 0.0
+        angular_speed = self.angular * sign
+        # if degree > 20:
+        #     angular_speed = self.angular * sign
+        # elif degree > 10:
+        #     angular_speed = 0.3 * sign
+        # elif degree > self.angular_accuracy:
+        #     angular_speed = 0.2 * sign
+        # else:
+        #     angular_speed = 0.0
 
         distance = math.fabs(distance)
         if distance > 20:
@@ -135,14 +160,15 @@ class NavDemo(Node):
     def turn_around(self, degree):
         sign = 1 if degree > 0 else -1
         degree = math.fabs(degree)
-        if degree > 20:
-            angular_speed = self.angular * sign
-        elif degree > 10:
-            angular_speed = 0.3 * sign
-        elif degree > self.angular_accuracy:
-            angular_speed = 0.2 * sign
-        else:
-            angular_speed = 0.0
+        angular_speed = self.angular * sign
+        # if degree > 20:
+        #     angular_speed = self.angular * sign
+        # elif degree > 10:
+        #     angular_speed = 0.3 * sign
+        # elif degree > self.angular_accuracy:
+        #     angular_speed = 0.2 * sign
+        # else:
+        #     angular_speed = 0.0
 
         # self.get_logger().info(f"\nAngular speed: {angular_speed}")
         this_time = self.get_clock().now().to_msg()
@@ -156,7 +182,9 @@ class NavDemo(Node):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--interval", type=float, default=1.0, help="timer interval")
-    ap.add_argument("-y", "--yaml", default="uwtec_wps.yaml", help="waypoints file")
+    ap.add_argument(
+        "-y", "--yaml-file", default="uwtec_wps.yaml", help="waypoints file"
+    )
     ap.add_argument(
         "--heading", type=float, default=0.0, help="initial heading for testing"
     )
@@ -167,16 +195,19 @@ def main():
         "--angular-accuracy", type=int, default=5, help="target angular accuracy"
     )
     ap.add_argument(
-        "-a", "--angular", type=float, default=0.5, help="angular velocity (-1 ~ 1)"
+        "-a", "--angular", type=float, default=0.4, help="angular velocity (-1 ~ 1)"
     )
     ap.add_argument(
-        "-l", "--linear", type=float, default=0.5, help="linear velocity (-1 ~ 1)"
+        "-l", "--linear", type=float, default=0.4, help="linear velocity (-1 ~ 1)"
+    )
+    ap.add_argument(
+        "--debug", action="store_true", help="Enable debug mode (default: False)"
     )
     args = vars(ap.parse_args())
     print(args)
 
     rclpy.init()
-    node = NavDemo(args)
+    node = NavDemo(**args)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
