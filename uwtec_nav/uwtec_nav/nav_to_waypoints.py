@@ -56,6 +56,7 @@ class NavDemo(Node):
         self.offset = 0
         self.debug = debug
         self.start_countdown = 5
+        self.bearing_goal = None
 
         self.coords = []
         yaml_file_path = os.path.join(
@@ -93,26 +94,39 @@ class NavDemo(Node):
             point1 = (self.latitude, self.longitude)
             coords = self.coords[self.wps_index]
             point2 = (coords["Lat"], coords["Lon"])
-            self.get_logger().info(f"\nSource: {point1}\nTarget: {point2}\n")
+            # self.get_logger().info(f"\nSource: {point1}\nTarget: {point2}\n")
             (distance, bearing) = distance_and_bearing(point1, point2)
-            degree = rotate_to_go(current_heading, bearing)
-            # self.get_logger().info(
-            #     f"\nSource: {point1}\nTarget: {point2} \
-            #     \nDistance: {distance:.2f}\nBearing: {bearing:.2f} \nHeading: {current_heading:.2f} \
-            #     \n=> {degree:.2f} deg\n"
-            # )
-
-            if math.fabs(distance) > self.distance_accuracy:
-                if math.fabs(degree) > self.angular_accuracy * 2.0:
-                    self.turn_around(degree)
-                else:
-                    self.go_drive(distance, degree)
+            if self.bearing_goal is None:
+                self.bearing_goal = bearing
+                degree = rotate_to_go(current_heading, self.bearing_goal)
+                self.get_logger().info(
+                    f"\nSource: {point1}\nTarget: {point2} \
+                    \nDistance: {distance:.2f}\nHeading: {current_heading:.2f} \
+                    \n=> {degree:.2f} deg\n"
+                )
+            degree = rotate_to_go(current_heading, self.bearing_goal)
+            if math.fabs(degree) > self.angular_accuracy:  # * 2.0:
+                self.turn_around(degree)
             else:
+                print(f"Bearing Finished: {self.wps_index}")
+                self.bearing_goal = None
                 self.wps_index += 1
                 if self.wps_index == len(self.coords):
                     self.get_logger().info("Navigation Finished.")
                     self.timer.cancel()
                     exit(0)
+
+            # if math.fabs(distance) > self.distance_accuracy:
+            #     if math.fabs(degree) > self.angular_accuracy * 2.0:
+            #         self.turn_around(degree)
+            #     else:
+            #         self.go_drive(distance, degree)
+            # else:
+            #     self.wps_index += 1
+            #     if self.wps_index == len(self.coords):
+            #         self.get_logger().info("Navigation Finished.")
+            #         self.timer.cancel()
+            #         exit(0)
 
     def gps_custom_callback(self, msg):
         self.latitude = msg.latitude
@@ -160,7 +174,7 @@ class NavDemo(Node):
         self.diff_drive_cmd_vel_publisher.publish(twist_msg)
 
     def turn_around(self, degree):
-        sign = 1 if degree > 0 else -1
+        sign = -1 if degree > 0 else 1
         degree = math.fabs(degree)
         angular_speed = self.angular * sign
         # if degree > 20:
