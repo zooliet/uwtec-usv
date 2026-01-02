@@ -83,6 +83,19 @@ class NavDemo(Node):
         )
         self.timer = self.create_timer(self.interval, self.timer_callback)
 
+    def gps_custom_callback(self, msg):
+        self.latitude = msg.latitude
+        self.longitude = msg.longitude
+        self.heading = msg.altitude
+
+    def gyro_imu_callback(self, msg):
+        quaternion = msg.orientation
+        # print(quaternion)
+        _, _, yaw = euler_from_quaternion(quaternion)
+        self.yaw = math.degrees(yaw) % 360  # rad to deg
+        if self.debug:
+            print(f"Gyro: {self.yaw:.2f}")
+
     def timer_callback(self):
         current_heading = (self.yaw - self.offset) % 360
         if self.start_countdown > 0:
@@ -104,11 +117,29 @@ class NavDemo(Node):
                     \nDistance: {distance:.2f}\nHeading: {current_heading:.2f} \
                     \n=> {degree:.2f} deg\n"
                 )
+
             degree = rotate_to_go(current_heading, self.bearing_goal)
-            if math.fabs(degree) > self.angular_accuracy:  # * 2.0:
-                self.turn_around(degree)
+            # if math.fabs(degree) > self.angular_accuracy:  # * 2.0:
+            #     self.turn_around(degree)
+            # else:
+            #     print(f"Bearing Finished: {self.wps_index}")
+            #     self.bearing_goal = None
+            #     self.wps_index += 1
+            #     if self.wps_index == len(self.coords):
+            #         self.get_logger().info("Navigation Finished.")
+            #         self.timer.cancel()
+            #         exit(0)
+
+            if math.fabs(distance) > self.distance_accuracy:
+                if math.fabs(degree) < self.angular_accuracy:
+                    degree = 0
+                    self.go_drive(distance, degree)
+            #     if math.fabs(degree) > self.angular_accuracy * 2.0:
+            #         self.turn_around(degree)
+            #     else:
+            #         self.go_drive(distance, degree)
             else:
-                print(f"Bearing Finished: {self.wps_index}")
+                print(f"WP #{self.wps_index} Finished")
                 self.bearing_goal = None
                 self.wps_index += 1
                 if self.wps_index == len(self.coords):
@@ -116,35 +147,13 @@ class NavDemo(Node):
                     self.timer.cancel()
                     exit(0)
 
-            # if math.fabs(distance) > self.distance_accuracy:
-            #     if math.fabs(degree) > self.angular_accuracy * 2.0:
-            #         self.turn_around(degree)
-            #     else:
-            #         self.go_drive(distance, degree)
-            # else:
-            #     self.wps_index += 1
-            #     if self.wps_index == len(self.coords):
-            #         self.get_logger().info("Navigation Finished.")
-            #         self.timer.cancel()
-            #         exit(0)
-
-    def gps_custom_callback(self, msg):
-        self.latitude = msg.latitude
-        self.longitude = msg.longitude
-        self.heading = msg.altitude
-
-    def gyro_imu_callback(self, msg):
-        quaternion = msg.orientation
-        # print(quaternion)
-        _, _, yaw = euler_from_quaternion(quaternion)
-        self.yaw = math.degrees(yaw) % 360  # rad to deg
-        if self.debug:
-            print(f"Gyro: {self.yaw:.2f}")
-
     def go_drive(self, distance, degree):
         sign = -1 if degree > 0 else 1
         degree = math.fabs(degree)
-        angular_speed = self.angular * sign
+        if degree == 0:
+            angular_speed = 0
+        else:
+            angular_speed = self.angular * sign
         # if degree > 20:
         #     angular_speed = self.angular * sign
         # elif degree > 10:
@@ -155,14 +164,15 @@ class NavDemo(Node):
         #     angular_speed = 0.0
 
         distance = math.fabs(distance)
-        if distance > 20:
-            linear_speed = self.linear
-        elif degree > 10:
-            linear_speed = 0.3
-        elif degree > self.angular_accuracy:
-            linear_speed = 0.2
-        else:
-            linear_speed = 0.0
+        linear_speed = self.linear
+        # if distance > 20:
+        #     linear_speed = self.linear
+        # elif distance > 10:
+        #     linear_speed = 0.3
+        # elif distance > self.distance_accuracy:
+        #     linear_speed = 0.2
+        # else:
+        #     linear_speed = 0.0
 
         # self.get_logger().info(f"\nAngular speed: {angular_speed}\nLinear speed: {linear_speed}")
         this_time = self.get_clock().now().to_msg()
