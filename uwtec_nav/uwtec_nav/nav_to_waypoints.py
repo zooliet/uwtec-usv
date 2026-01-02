@@ -39,6 +39,7 @@ class NavDemo(Node):
         linear,
         angular_accuracy,
         distance_accuracy,
+        debug,
     ):
         super().__init__("nav_demo_node")
         self.interval = interval
@@ -53,6 +54,7 @@ class NavDemo(Node):
         self.heading = heading
         self.yaw = 0
         self.offset = 0
+        self.debug = debug
         self.start_countdown = 5
 
         self.coords = []
@@ -126,7 +128,7 @@ class NavDemo(Node):
             print(f"Gyro: {self.yaw:.2f}")
 
     def go_drive(self, distance, degree):
-        sign = 1 if degree > 0 else -1
+        sign = -1 if degree > 0 else 1
         degree = math.fabs(degree)
         angular_speed = self.angular * sign
         # if degree > 20:
@@ -192,7 +194,7 @@ def main():
         "--distance-accuracy", type=int, default=5, help="target distance accuracy"
     )
     ap.add_argument(
-        "--angular-accuracy", type=int, default=5, help="target angular accuracy"
+        "--angular-accuracy", type=int, default=3, help="target angular accuracy"
     )
     ap.add_argument(
         "-a", "--angular", type=float, default=0.4, help="angular velocity (-1 ~ 1)"

@@ -81,9 +81,9 @@ class NavDemo(Node):
             print(f"Gyro: {self.yaw:.2f}")
 
     def turn_around(self, degree):
-        sign = 1 if degree > 0 else -1
+        sign = -1 if degree > 0 else 1
         degree = math.fabs(degree)
-        angular_speed = 0.4 * sign
+        angular_speed = self.angular * sign
         # if degree > 20:
         #     angular_speed = self.angular * sign
         # elif degree > 10:
@@ -111,7 +111,7 @@ def main():
     ap.add_argument("--heading", type=float, default=0.0, help="initial heading")
     ap.add_argument("--accuracy", type=int, default=5, help="target accuracy")
     ap.add_argument(
-        "-a", "--angular", type=float, default=0.5, help="angular velocity (-1 ~ 1)"
+        "-a", "--angular", type=float, default=0.4, help="angular velocity (-1 ~ 1)"
     )
     ap.add_argument(
         "--debug", action="store_true", help="Enable debug mode (default: False)"

@@ -75,7 +75,7 @@ class NavDemo(Node):
         twist_msg = TwistStamped()
         twist_msg.header.stamp = this_time
         twist_msg.header.frame_id = "base_footprint"
-        twist_msg.twist.angular.z = 1.0
+        twist_msg.twist.angular.z = self.angular
         self.diff_drive_cmd_vel_publisher.publish(twist_msg)
 
 
@@ -89,11 +89,8 @@ def main():
     ap.add_argument(
         "--debug", action="store_true", help="Enable debug mode (default: False)"
     )
-    ap.add_argument(
-        "--debug", action="store_true", help="Enable debug mode (default: False)"
-    )
     args = vars(ap.parse_args())
-    print(**args)
+    print(args)
 
     rclpy.init()
     node = NavDemo(**args)
