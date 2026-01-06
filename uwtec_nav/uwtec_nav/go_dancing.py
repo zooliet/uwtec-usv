@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import sys
 import rclpy
 from rclpy.node import Node
 
@@ -53,6 +54,8 @@ class NavDemo(Node):
             if self.duration > 0:
                 self.go_dancing()
                 self.duration -= 1
+                if self.duration == 0:
+                    sys.exit(0)
             self.get_logger().info(
                 f"\nHeading: {self.heading:.2f}, Yaw: {current_heading:.2f}, Angular: {self.angular:.2f}"
             )

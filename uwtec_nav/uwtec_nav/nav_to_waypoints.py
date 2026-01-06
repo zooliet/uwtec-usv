@@ -19,9 +19,7 @@ import math
 from uwtec_nav.utils.heading_utils import calc_goal_heading, rotate_to_go
 from uwtec_nav.utils.gps_utils import distance_and_bearing
 
-from enum import Enum
-
-
+# from enum import Enum
 # class Status(Enum):
 #     STOP = 1
 #     TURN = 2
@@ -119,33 +117,33 @@ class NavDemo(Node):
                 )
 
             degree = rotate_to_go(current_heading, self.bearing_goal)
-            # if math.fabs(degree) > self.angular_accuracy:  # * 2.0:
-            #     self.turn_around(degree)
-            # else:
-            #     print(f"Bearing Finished: {self.wps_index}")
-            #     self.bearing_goal = None
-            #     self.wps_index += 1
-            #     if self.wps_index == len(self.coords):
-            #         self.get_logger().info("Navigation Finished.")
-            #         self.timer.cancel()
-            #         exit(0)
-
-            if math.fabs(distance) > self.distance_accuracy:
-                if math.fabs(degree) < self.angular_accuracy:
-                    degree = 0
-                    self.go_drive(distance, degree)
-            #     if math.fabs(degree) > self.angular_accuracy * 2.0:
-            #         self.turn_around(degree)
-            #     else:
-            #         self.go_drive(distance, degree)
+            if math.fabs(degree) > self.angular_accuracy:  # * 2.0:
+                self.turn_around(degree)
             else:
-                print(f"WP #{self.wps_index} Finished")
+                print(f"Bearing Finished: {self.wps_index}")
                 self.bearing_goal = None
                 self.wps_index += 1
                 if self.wps_index == len(self.coords):
                     self.get_logger().info("Navigation Finished.")
                     self.timer.cancel()
                     exit(0)
+
+            # if math.fabs(distance) > self.distance_accuracy:
+            #     if math.fabs(degree) < self.angular_accuracy:
+            #         degree = 0
+            #     self.go_drive(distance, degree)
+            # #     if math.fabs(degree) > self.angular_accuracy * 2.0:
+            # #         self.turn_around(degree)
+            # #     else:
+            # #         self.go_drive(distance, degree)
+            # else:
+            #     print(f"WP #{self.wps_index} Finished")
+            #     self.bearing_goal = None
+            #     self.wps_index += 1
+            #     if self.wps_index == len(self.coords):
+            #         self.get_logger().info("Navigation Finished.")
+            #         self.timer.cancel()
+            #         exit(0)
 
     def go_drive(self, distance, degree):
         sign = -1 if degree > 0 else 1
@@ -174,7 +172,9 @@ class NavDemo(Node):
         # else:
         #     linear_speed = 0.0
 
-        # self.get_logger().info(f"\nAngular speed: {angular_speed}\nLinear speed: {linear_speed}")
+        self.get_logger().info(
+            f"\nAngular speed: {angular_speed}\nLinear speed: {linear_speed}"
+        )
         this_time = self.get_clock().now().to_msg()
         twist_msg = TwistStamped()
         twist_msg.header.stamp = this_time

@@ -142,51 +142,60 @@ namespace uwtec_cart {
   UwtecCartSystemHardware::read(const rclcpp::Time & /*time*/, const rclcpp::Duration &period) {
 
     std::stringstream ss;
-    ss << "Reading states:";
-    ss << std::fixed << std::setprecision(2);
+    // ss << "Reading states:";
+    // ss << std::fixed << std::setprecision(2);
     for (const auto &[name, descr] : joint_state_interfaces_) {
       if (descr.get_interface_name() == hardware_interface::HW_IF_POSITION) {
         auto velo = get_command(descr.get_prefix_name() + "/" + hardware_interface::HW_IF_VELOCITY);
         set_state(name, get_state(name) + period.seconds() * velo);
 
-        ss << std::endl
-          << "\t position " << get_state(name) << " and velocity " << velo
-          << " for '" << name << "'!";
+        // ss << std::endl
+        //   << "\t position " << get_state(name) << " and velocity " << velo
+        //   << " for '" << name << "'!";
       }
     }
-    RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 500, "%s", ss.str().c_str());
+    // RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 500, "%s", ss.str().c_str());
     return hardware_interface::return_type::OK;
   }
 
   hardware_interface::return_type
   UwtecCartSystemHardware::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/) {
     std::stringstream ss;
-    ss << "Writing commands:";
+    // ss << "Writing commands:";
     for (const auto &[name, descr] : joint_command_interfaces_) {
       // Simulate sending commands to the hardware
       set_state(name, get_command(name));
 
-      ss << std::fixed << std::setprecision(2) << std::endl
-        << "\t" << "command " << get_command(name) << " for '" << name << "'!";
+      // ss << std::fixed << std::setprecision(2) << std::endl
+      //   << "\t" << "command " << get_command(name) << " for '" << name << "'!";
     }
+    // RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 500, "%s", ss.str().c_str());
+
+    x_speed = get_command("left_wheel_joint/velocity"); // /3.3;
+    y_speed = get_command("right_wheel_joint/velocity"); // /3.3;
+    // if (x_speed < 0.05) // reverse or too slow
+    //   x_speed = 0.0;
+    // else if (x_speed < 0.2)
+    //   x_speed = 0.2;
+    // x_speed = 0.28;
+
+
+    // if (y_speed < 0.05) // reverse or too slow
+    //   y_speed = 0.0;
+    // else if (y_speed < 0.2)
+    //   y_speed = 0.2;
+    // y_speed = 0.28;
+
+    ss << "Writing commands:";
+    ss << std::fixed << std::setprecision(2) << std::endl
+      << "\t" << "command " << x_speed << " for '" << "left" << "'!";
+    ss << std::fixed << std::setprecision(2) << std::endl
+      << "\t" << "command " << y_speed << " for '" << "right" << "'!";
     RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 500, "%s", ss.str().c_str());
 
-    x_speed = get_command("left_wheel_joint/velocity")/3.3;
-    y_speed = get_command("right_wheel_joint/velocity")/3.3;
-    if (x_speed < 0.05) // reverse direction or too slow
-      x_speed = 0.0;
-    else if (x_speed < 0.2)
-      x_speed = 0.2;
-
-
-    if (y_speed < 0.05) // reverse direction or too slow
-      y_speed = 0.0;
-    else if (y_speed < 0.2)
-      y_speed = 0.2;
-
     geometry_msgs::msg::Twist msg;
-    msg.linear.x = x_speed; // get_command("left_wheel_joint/velocity")/3.3;
-    msg.linear.y = y_speed; // get_command("right_wheel_joint/velocity")/3.3;
+    msg.linear.x = x_speed;
+    msg.linear.y = y_speed;
     uros_publisher_->publish(msg);
 
     return hardware_interface::return_type::OK;

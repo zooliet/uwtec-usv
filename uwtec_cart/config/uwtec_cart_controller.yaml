@@ -1,7 +1,7 @@
 controller_manager:
   ros__parameters:
     # update_rate: 100 # Hz
-    update_rate: 10 # Hz
+    update_rate: 1 # 1 Hz hl1sqi
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -12,9 +12,9 @@ diff_drive_base_controller:
     left_wheel_names: ["left_wheel_joint"]
     right_wheel_names: ["right_wheel_joint"]
 
-    wheel_separation: 1.25
+    wheel_separation: 0.5 # 1.25
     #wheels_per_side: 1  # actually 2, but both are controlled by 1 signal
-    wheel_radius: 0.3
+    wheel_radius: 1.0 # 0.3
 
     wheel_separation_multiplier: 1.0
     left_wheel_radius_multiplier: 1.0
@@ -29,7 +29,7 @@ diff_drive_base_controller:
     open_loop: true
     enable_odom_tf: false # true
 
-    cmd_vel_timeout: 0.11 # 0.5
+    cmd_vel_timeout: 0.11 # 0.5 hl1sqi
     #publish_limited_velocity: true
     use_stamped_vel: true
     #velocity_rolling_window_size: 10
