@@ -2,20 +2,16 @@
 
 import rclpy
 from rclpy.node import Node
-
-from sensor_msgs.msg import NavSatFix, Imu
-from uwtec_nav.utils.gps_utils import (
-    euler_from_quaternion,
-)
-
+from sensor_msgs.msg import NavSatFix
 import argparse
 
 
 class GPSDemo(Node):
-    def __init__(self, params):
+    def __init__(self, interval, debug):
         super().__init__("gps_demo_node")
 
-        self.interval = float(params.get("interval", 1.0))
+        self.interval = interval
+        self.interval = debug
         self.latitude = 0.0
         self.longitude = 0.0
         self.heading = 0.0
@@ -39,11 +35,14 @@ class GPSDemo(Node):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--interval", type=float, default=1.0, help="timer interval")
+    ap.add_argument(
+        "--debug", action="store_true", help="Enable debug mode (default: False)"
+    )
     args = vars(ap.parse_args())
     print(args)
 
     rclpy.init()
-    node = GPSDemo(args)
+    node = GPSDemo(**args)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

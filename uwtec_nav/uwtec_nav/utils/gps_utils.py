@@ -3,6 +3,7 @@ from geographic_msgs.msg import GeoPose
 from geometry_msgs.msg import Quaternion
 
 from geopy.distance import geodesic
+from pyproj import Geod
 
 
 def quaternion_from_euler(roll, pitch, yaw):
@@ -86,3 +87,80 @@ def distance_and_bearing(point1, point2):
     # print(f"Distance: {distance:.2f} m")
 
     return distance, bearing
+
+
+def calc_goal_heading(current_heading, by):
+    goal_heading = (current_heading + by) % 360
+    # print(f"Current: {current_heading}\tby {by}\tGoal: {goal_heading}")
+    return goal_heading
+
+
+def rotate_to_go(current_heading, goal_heading):
+    deg = (goal_heading - current_heading) % 360
+    if deg > 180:
+        deg = deg % -360
+    # if deg > 180:
+    #     deg = deg - 360
+    # elif deg < -180:
+    #     deg = deg + 360
+    # else:
+    #     pass
+    return deg
+
+
+def coordinate_after_move(lat, lon, vel_east, vel_north, interval):
+    geod = Geod(ellps="WGS84")
+    dist_east = vel_east * interval
+    dist_north = vel_north * interval
+    distance = math.sqrt(math.pow(dist_east, 2) + math.pow(dist_north, 2))
+    azimuth = math.degrees(math.atan2(dist_north, dist_east))
+    lon, lat, _ = geod.fwd(lons=lon, lats=lat, az=azimuth, dist=distance)
+    return (lat, lon)  # 순서 주의
+
+
+if __name__ == "__main__":
+    import argparse
+
+    headings = [0, 10, 170, 270, 350]
+    for heading in headings:
+        calc_goal_heading(heading, 30)
+
+    for heading in headings:
+        calc_goal_heading(heading, -30)
+    print("\n\n")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--heading", type=int, default=0, help="current heading reading")
+    ap.add_argument("--by", type=int, default=30, help="degree to turn")
+    args = vars(ap.parse_args())
+    # print(args)
+    current_heading = int(args.get("heading", 0))
+    by = int(args.get("by", 30))
+
+    goal = calc_goal_heading(current_heading, by)
+
+    ranges = []
+    start = current_heading
+    end = current_heading + by
+    if by > 0:
+        if end < 360:
+            ranges.append((start, end))
+        else:
+            ranges.append((start, 360))
+            ranges.append((0, end % 360))
+    elif by < 0:
+        if end >= 0:
+            ranges.append((start, end))
+        else:
+            ranges.append((start, 0))
+            ranges.append((360, end % 360))
+    else:
+        pass
+
+    print(ranges)
+
+    for r in ranges:
+        (start, end) = r
+        inc = 1 if end >= start else -1
+        for c in range(start, end, inc):
+            deg = rotate_to_go(c, goal)
+            print(f"{c}\tto\t{goal}\t=\t{deg}")

@@ -78,8 +78,8 @@ def generate_launch_description():
         name="twist_mux",
         output="screen",
         parameters=[twist_mux_config_path],
-        remappings=[("cmd_vel_out", "/diff_drive_base_controller/cmd_vel")],
-        # remappings=[("cmd_vel_out", "/cmd_vel_mux")],
+        # remappings=[("cmd_vel_out", "/diff_drive_base_controller/cmd_vel")],
+        remappings=[("cmd_vel_out", "/cmd_vel_mux")],
     )
 
     nodes = [

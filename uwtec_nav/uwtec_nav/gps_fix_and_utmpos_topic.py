@@ -2,21 +2,20 @@
 
 import rclpy
 from rclpy.node import Node
-
-from sensor_msgs.msg import NavSatFix, Imu
+from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 from uwtec_nav.utils.gps_utils import (
     euler_from_quaternion,
 )
-
 import argparse
 
 
 class GPSDemo(Node):
-    def __init__(self, params):
+    def __init__(self, interval, debug):
         super().__init__("gps_demo_node")
 
-        self.interval = float(params.get("interval", 1.0))
+        self.interval = interval
+        self.interval = debug
         self.latitude = 0.0
         self.longitude = 0.0
         self.heading = 0.0
@@ -30,9 +29,10 @@ class GPSDemo(Node):
         self.timer = self.create_timer(self.interval, self.timer_callback)
 
     def timer_callback(self):
-        self.get_logger().info(
-            f"\nLatitude: {self.latitude:.6f}, Longitude: {self.longitude:.6f}, Heading: {self.heading:.2f}"
-        )
+        pass
+        # self.get_logger().info(
+        #     f"\nLatitude: {self.latitude:.6f}, Longitude: {self.longitude:.6f}, Heading: {self.heading:.2f}"
+        # )
 
     def gps_callback(self, msg):
         self.latitude = msg.latitude
@@ -42,18 +42,23 @@ class GPSDemo(Node):
         # )
 
     def utm_callback(self, msg):
-        # self.get_logger().info(f"Raw UTM data: {msg}")
-        _, _, self.heading = euler_from_quaternion(msg.orientation)
+        # self.get_logger().info(f"Raw UTM data: {msg.twist}")
+        vel_east = msg.twist.twist.linear.x
+        vel_north = msg.twist.twist.linear.y
+        self.get_logger().info(f"Vel(east): {vel_east}, Vel(north): {vel_north}")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--interval", type=float, default=1.0, help="timer interval")
+    ap.add_argument(
+        "--debug", action="store_true", help="Enable debug mode (default: False)"
+    )
     args = vars(ap.parse_args())
     print(args)
 
     rclpy.init()
-    node = GPSDemo(args)
+    node = GPSDemo(**args)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

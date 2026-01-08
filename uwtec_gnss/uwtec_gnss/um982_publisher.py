@@ -34,12 +34,12 @@ class GNSSNode(Node):
         self.gnss_driver.start()
 
         # 서울 시청 좌표를 사용해서 UTM transformer 초기화
-        # self.transformer = create_utm_trans(36.5665, 127.9780)
+        self.transformer = create_utm_trans(36.5665, 127.9780)
 
         # pub topics
         self.gps_pub = self.create_publisher(NavSatFix, "/gps/custom", 1)
         # self.fix_pub = self.create_publisher(NavSatFix, "/gps/fix", 1)
-        # self.utm_pub = self.create_publisher(Odometry, "/gps/utmpos", 10)
+        self.utm_pub = self.create_publisher(Odometry, "/gps/utmpos", 10)
         # self.imu_pub = self.create_publisher(Imu, "/imu/data", 1)
 
         # timer for every 1/2 sec
@@ -53,7 +53,7 @@ class GNSSNode(Node):
         (vel_east, vel_north, vel_ver, vel_east_std, vel_north_std, vel_ver_std) = (
             np.mean(self.gnss_driver.velocities, axis=0)
         )
-        # (utm_x, utm_y) = utm_trans(self.transformer, lon, lat)
+        (utm_x, utm_y) = utm_trans(self.transformer, lon, lat)
 
         # check the accumulation size
         if self.debug:
@@ -89,36 +89,36 @@ class GNSSNode(Node):
         # fix_msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_DIAGONAL_KNOWN
         # self.fix_pub.publish(fix_msg)
 
-        # # Publish UTM Position Data
-        # odom_msg = Odometry()
-        # odom_msg.header.stamp = this_time
-        # odom_msg.header.frame_id = "map"
-        # odom_msg.child_frame_id = "base_link"
-        # odom_msg.pose.pose.position.x = utm_x
-        # odom_msg.pose.pose.position.y = utm_y
-        # odom_msg.pose.pose.position.z = hgt
-        # quaternion = quaternion_from_euler(
-        #     math.radians(roll), math.radians(pitch), math.radians(heading)
-        # )
-        # odom_msg.pose.pose.orientation.x = quaternion[0]
-        # odom_msg.pose.pose.orientation.y = quaternion[1]
-        # odom_msg.pose.pose.orientation.z = quaternion[2]
-        # odom_msg.pose.pose.orientation.w = quaternion[3]
-        # odom_msg.pose.covariance = [0.0] * 36
-        # odom_msg.pose.covariance[0] = float(latstd) ** 2
-        # odom_msg.pose.covariance[7] = float(lonstd) ** 2
-        # odom_msg.pose.covariance[14] = float(hgtstd) ** 2
-        # odom_msg.pose.covariance[21] = 0.1
-        # odom_msg.pose.covariance[28] = 0.1
-        # odom_msg.pose.covariance[35] = 0.1
-        # odom_msg.twist.twist.linear.x = vel_east
-        # odom_msg.twist.twist.linear.y = vel_north
-        # odom_msg.twist.twist.linear.z = vel_ver
-        # odom_msg.twist.covariance = [0.0] * 36
-        # odom_msg.twist.covariance[0] = float(vel_east_std) ** 2
-        # odom_msg.twist.covariance[7] = float(vel_north_std) ** 2
-        # odom_msg.twist.covariance[14] = float(vel_ver_std) ** 2
-        # self.utm_pub.publish(odom_msg)
+        # Publish UTM Position Data
+        odom_msg = Odometry()
+        odom_msg.header.stamp = this_time
+        odom_msg.header.frame_id = "map"
+        odom_msg.child_frame_id = "base_link"
+        odom_msg.pose.pose.position.x = utm_x
+        odom_msg.pose.pose.position.y = utm_y
+        odom_msg.pose.pose.position.z = hgt
+        quaternion = quaternion_from_euler(
+            math.radians(roll), math.radians(pitch), math.radians(heading)
+        )
+        odom_msg.pose.pose.orientation.x = quaternion[0]
+        odom_msg.pose.pose.orientation.y = quaternion[1]
+        odom_msg.pose.pose.orientation.z = quaternion[2]
+        odom_msg.pose.pose.orientation.w = quaternion[3]
+        odom_msg.pose.covariance = [0.0] * 36
+        odom_msg.pose.covariance[0] = float(latstd) ** 2
+        odom_msg.pose.covariance[7] = float(lonstd) ** 2
+        odom_msg.pose.covariance[14] = float(hgtstd) ** 2
+        odom_msg.pose.covariance[21] = 0.1
+        odom_msg.pose.covariance[28] = 0.1
+        odom_msg.pose.covariance[35] = 0.1
+        odom_msg.twist.twist.linear.x = vel_east
+        odom_msg.twist.twist.linear.y = vel_north
+        odom_msg.twist.twist.linear.z = vel_ver
+        odom_msg.twist.covariance = [0.0] * 36
+        odom_msg.twist.covariance[0] = float(vel_east_std) ** 2
+        odom_msg.twist.covariance[7] = float(vel_north_std) ** 2
+        odom_msg.twist.covariance[14] = float(vel_ver_std) ** 2
+        self.utm_pub.publish(odom_msg)
 
         # # Publish IMU Data
         # imu_msg = Imu()

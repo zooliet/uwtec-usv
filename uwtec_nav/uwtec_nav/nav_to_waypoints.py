@@ -2,7 +2,6 @@
 
 # import sys
 import os
-
 import yaml
 import rclpy
 from rclpy.node import Node
@@ -12,12 +11,14 @@ from sensor_msgs.msg import NavSatFix, Imu
 from uwtec_nav.utils.gps_utils import (
     euler_from_quaternion,
 )
-
 from geometry_msgs.msg import TwistStamped
 import argparse
 import math
-from uwtec_nav.utils.heading_utils import calc_goal_heading, rotate_to_go
-from uwtec_nav.utils.gps_utils import distance_and_bearing
+from uwtec_nav.utils.gps_utils import (
+    distance_and_bearing,
+    calc_goal_heading,
+    rotate_to_go,
+)
 
 # from enum import Enum
 # class Status(Enum):

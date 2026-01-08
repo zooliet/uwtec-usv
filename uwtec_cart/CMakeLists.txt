@@ -86,6 +86,17 @@ install(
 ament_export_targets(export_uwtec_cart HAS_LIBRARY_TARGET)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 
+install(
+  DIRECTORY uwtec_cart
+  DESTINATION share/${PROJECT_NAME})
+
+install(
+  PROGRAMS
+    uwtec_cart/cmd_vel_mux.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+ament_python_install_package(${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

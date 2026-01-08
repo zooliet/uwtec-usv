@@ -47,7 +47,7 @@ class UM982Driver(threading.Thread):
             except Exception as _:
                 print(f"PVTSLNA#{self.fixes.shape[0]:04d}, Error")
 
-        elif frame.startswith("$GNHPR") and nmea_crc(frame):
+        if frame.startswith("$GNHPR") and nmea_crc(frame):
             try:
                 orientation = GNHPR_solver(frame)
                 self.orientations = np.vstack(
@@ -59,7 +59,7 @@ class UM982Driver(threading.Thread):
             except Exception as _:
                 print(f"GNHPR#{self.orientations.shape[0]:04d}, Error")
 
-        elif frame.startswith("#BESTNAVA") and nmea_expend_crc(frame):
+        if frame.startswith("#BESTNAVA") and nmea_expend_crc(frame):
             try:
                 velocity = BESTNAV_solver(frame)
                 self.velocities = np.vstack((self.velocities, np.array(velocity)))

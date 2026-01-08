@@ -1,9 +1,8 @@
 #! /usr/bin/env python
 
-import sys
+# import sys
 import rclpy
 from rclpy.node import Node
-
 from sensor_msgs.msg import NavSatFix, Imu
 from uwtec_nav.utils.gps_utils import (
     euler_from_quaternion,
@@ -26,7 +25,9 @@ class NavDemo(Node):
         self.heading = 0.0
         self.yaw = 0
         self.offset = 0
+
         self.start_countdown = 5
+        self.ticks = 0
 
         self.gps_subscriber = self.create_subscription(
             NavSatFix, "/gps/custom", self.gps_custom_callback, 1
@@ -43,23 +44,6 @@ class NavDemo(Node):
         )
         self.timer = self.create_timer(self.interval, self.timer_callback)
 
-    def timer_callback(self):
-        current_heading = (self.yaw - self.offset) % 360
-        if self.start_countdown > 0:
-            self.get_logger().info(f"{self.start_countdown}...")
-            self.start_countdown -= 1
-            if self.start_countdown == 0:
-                self.offset = (self.yaw - self.heading) % 360
-        else:
-            if self.duration > 0:
-                self.go_dancing()
-                self.duration -= 1
-                if self.duration == 0:
-                    sys.exit(0)
-            self.get_logger().info(
-                f"\nHeading: {self.heading:.2f}, Yaw: {current_heading:.2f}, Angular: {self.angular:.2f}"
-            )
-
     def gps_custom_callback(self, msg):
         self.latitude = msg.latitude
         self.longitude = msg.longitude
@@ -73,6 +57,32 @@ class NavDemo(Node):
         if self.debug:
             print(f"Gyro: {self.yaw:.2f}")
 
+    def timer_callback(self):
+        current_heading = (self.yaw - self.offset) % 360
+        if self.start_countdown > 0:
+            if self.ticks == 0:
+                self.get_logger().info(f"{self.start_countdown}...")
+
+            self.ticks += 1
+            if self.ticks == int(1 / self.interval):
+                self.ticks = 0
+                self.start_countdown -= 1
+                if self.start_countdown == 0:
+                    self.offset = (self.yaw - self.heading) % 360
+        else:
+            if self.duration > 0:
+                self.go_dancing()
+
+                self.ticks += 1
+                if self.ticks == int(1 / self.interval):
+                    self.ticks = 0
+                    self.get_logger().info(
+                        f"\nHeading: {self.heading:.2f}, Yaw: {current_heading:.2f}, Angular: {self.angular:.2f}"
+                    )
+                    self.duration -= 1
+            else:
+                self.stop_moving()
+
     def go_dancing(self):
         this_time = self.get_clock().now().to_msg()
         twist_msg = TwistStamped()
@@ -81,10 +91,19 @@ class NavDemo(Node):
         twist_msg.twist.angular.z = self.angular
         self.diff_drive_cmd_vel_publisher.publish(twist_msg)
 
+    def stop_moving(self):
+        this_time = self.get_clock().now().to_msg()
+        twist_msg = TwistStamped()
+        twist_msg.header.stamp = this_time
+        twist_msg.header.frame_id = "base_footprint"
+        twist_msg.twist.linear.x = 0.0
+        twist_msg.twist.angular.z = 0.0
+        self.diff_drive_cmd_vel_publisher.publish(twist_msg)
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--interval", type=float, default=1.0, help="timer interval")
+    ap.add_argument("-i", "--interval", type=float, default=0.5, help="timer interval")
     ap.add_argument("-d", "--duration", type=int, default=30, help="duration")
     ap.add_argument(
         "-a", "--angular", type=float, default=0.5, help="angular velocity (-1 ~ 1)"

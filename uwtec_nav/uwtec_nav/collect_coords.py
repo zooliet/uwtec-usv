@@ -14,8 +14,11 @@ from sensor_msgs.msg import NavSatFix, Imu
 
 from geometry_msgs.msg import TwistStamped
 import argparse
-from uwtec_nav.utils.heading_utils import calc_goal_heading, rotate_to_go
-from uwtec_nav.utils.gps_utils import distance_and_bearing
+from uwtec_nav.utils.gps_utils import (
+    distance_and_bearing,
+    calc_goal_heading,
+    rotate_to_go,
+)
 
 
 class NavDemo(Node):

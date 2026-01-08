@@ -32,8 +32,9 @@ setup(
             "03_go_dancing = uwtec_nav.go_dancing:main",
             "04_turn_around = uwtec_nav.turn_around:main",
             "05_distance_and_bearing = uwtec_nav.distance_and_bearing:main",
-            "06_collect_coords = uwtec_nav.collect_coords:main",
-            "07_nav_to_waypoints = uwtec_nav.nav_to_waypoints:main",
+            # "06_collect_coords = uwtec_nav.collect_coords:main",
+            "07_shuttle_run = uwtec_nav.shuttle_run:main",
+            # "08_nav_to_waypoints = uwtec_nav.nav_to_waypoints:main",
         ],
     },
 )
