@@ -15,7 +15,7 @@ from uwtec_nav.utils.gps_utils import (
     distance_and_bearing,
     calc_goal_heading,
     rotate_to_go,
-    coordinate_after_move,
+    coordinate_after_movement,
 )
 
 import sys
@@ -131,11 +131,11 @@ class NavDemo(Node):
                 self.start_countdown -= 1
                 if self.start_countdown == 0:
                     self.offset = (self.yaw - self.heading) % 360
-                    self.coords.append({"Lat": self.latitude, "Lon": self.latitude})
+                    self.coords.append({"Lat": self.latitude, "Lon": self.longitude})
 
         else:
             # point1 = (self.latitude, self.longitude)
-            point1 = coordinate_after_move(
+            point1 = coordinate_after_movement(
                 self.latitude,
                 self.longitude,
                 self.vel_east,

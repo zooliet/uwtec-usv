@@ -108,7 +108,7 @@ def rotate_to_go(current_heading, goal_heading):
     return deg
 
 
-def coordinate_after_move(lat, lon, vel_east, vel_north, interval):
+def coordinate_after_movement(lat, lon, vel_east, vel_north, interval):
     geod = Geod(ellps="WGS84")
     dist_east = vel_east * interval
     dist_north = vel_north * interval

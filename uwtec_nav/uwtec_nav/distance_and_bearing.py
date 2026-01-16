@@ -13,7 +13,7 @@ from uwtec_nav.utils.gps_utils import (
     distance_and_bearing,
     calc_goal_heading,
     rotate_to_go,
-    coordinate_after_move,
+    coordinate_after_movement,
 )
 import sys
 import math
@@ -89,7 +89,7 @@ class NavDemo(Node):
 
         else:
             # point1 = (self.latitude, self.longitude)
-            point1 = coordinate_after_move(
+            point1 = coordinate_after_movement(
                 self.latitude,
                 self.longitude,
                 self.vel_east,
